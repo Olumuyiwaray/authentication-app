@@ -12,7 +12,7 @@ export class User {
   @Prop({ required: true })
   password: string;
   @Prop({ type: Types.ObjectId, ref: 'Role' })
-  roles: Types.ObjectId[];
+  roles: Types.Array<Types.ObjectId>;
 }
 
-export const AdminSchema = SchemaFactory.createForClass(User);
+export const UserSchema = SchemaFactory.createForClass(User);

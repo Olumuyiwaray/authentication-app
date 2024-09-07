@@ -9,4 +9,4 @@ export class Role {
   role: string;
 }
 
-export const AdminSchema = SchemaFactory.createForClass(Role);
+export const RoleSchema = SchemaFactory.createForClass(Role);
