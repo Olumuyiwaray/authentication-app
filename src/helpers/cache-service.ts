@@ -8,7 +8,7 @@ export class CacheService {
 
   async setSession(userId: string, sessionData: any) {
     console.log('seetsession');
-    await this.cache.set(`user-session:${userId}`, sessionData, 70000);
+    await this.cache.set(`user-session:${userId}`, sessionData);
   }
 
   async getSession(userId: string): Promise<{ accessToken: string }> {

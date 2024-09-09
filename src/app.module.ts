@@ -37,6 +37,7 @@ import { RateLimitGuard } from './guards/rate-limit-guard';
             host: 'localhost',
             port: 6379,
           },
+          ttl: 70000,
         }),
       }),
     }),

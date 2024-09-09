@@ -87,6 +87,10 @@ export class AuthService {
     return token;
   }
 
+  async logout(userId: string) {
+    return await this.cacheService.deleteSessionToken(userId);
+  }
+
   private async validateUser(username: string, userPassword: string) {
     const user = await this.userService.findOne(username);
 
