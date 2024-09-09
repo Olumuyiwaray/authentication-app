@@ -3,9 +3,9 @@ import { HydratedDocument } from 'mongoose';
 
 export type RoleDocument = HydratedDocument<Role>;
 
-@Schema()
+@Schema({ timestamps: true })
 export class Role {
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true, unique: true, enum: ['admin', 'student', 'CRM'] })
   role: string;
 }
 
