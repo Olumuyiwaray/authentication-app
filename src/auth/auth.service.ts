@@ -24,10 +24,8 @@ export class AuthService {
 
     const user = await this.userService.findOne(username);
 
-    console.log('getting user');
-
     if (user) {
-      return new ConflictException('Username already exists');
+      throw new ConflictException('Username already exists');
     }
 
     const hash = await hashPassword(password);
@@ -35,35 +33,27 @@ export class AuthService {
 
     const checkRole = await this.userService.findRole(role);
 
-    console.log('checking role');
-
     const newUserObj = {
       username,
       password: hash,
       roles: '',
     };
 
-    if (checkRole) {
-      console.log('role exists');
+    if (!checkRole) {
       newUserObj.roles = checkRole.id;
+    } else {
+      const newRole = await this.userService.createRole(role);
+      newUserObj.roles = newRole.id;
     }
 
-    console.log('creating role');
-    const newRole = await this.userService.createRole(role);
-    newUserObj.roles = newRole.id;
-
-    console.log('creating user');
-
     await this.userService.create(newUserObj);
+    return 'User creation sucessful';
   }
 
   async login(username: string, password: string) {
-    console.log('In the service');
-
     console.log('validating user');
     const user = await this.validateUser(username, password);
 
-    console.log('getting user');
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -74,12 +64,8 @@ export class AuthService {
       roles: user.roles,
     };
 
-    console.log(payload);
-
-    console.log('creating token');
     const token = await this.jwtService.signAsync(payload);
 
-    console.log('Caching details');
     await this.cacheService.setSession(user.id, {
       userId: user.id,
       accessToken: token,

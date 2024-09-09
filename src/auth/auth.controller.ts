@@ -22,11 +22,8 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() loginUserDto: LoginUserDto) {
-    console.log(loginUserDto);
-    console.log('In the controller');
     const { username, password } = loginUserDto;
     const token = await this.authService.login(username, password);
-    console.log('Back to controller');
     return { isSuccess: true, message: 'login successful', token };
   }
   @UseGuards(JwtAuthGuard)
