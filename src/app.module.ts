@@ -3,12 +3,16 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { CacheModule } from '@nestjs/cache-manager';
 import { AuthService } from './auth/auth.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { RedisOptions } from './config/redis';
 import config from './config/envconfig';
+import { JwtModule } from '@nestjs/jwt';
+import { redisStore } from 'cache-manager-redis-yet';
+import { CacheModule } from '@nestjs/cache-manager';
+import { CacheService } from './helpers/cache-service';
+import { APP_GUARD } from '@nestjs/core';
+import { RateLimitGuard } from './guards/rate-limit-guard';
 
 @Module({
   imports: [
@@ -22,13 +26,31 @@ import config from './config/envconfig';
       inject: [ConfigService],
     }),
     ConfigModule.forRoot({
+      isGlobal: true,
       load: [config],
     }),
-    CacheModule.registerAsync(RedisOptions),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      useFactory: async () => ({
+        store: await redisStore({
+          socket: {
+            host: 'localhost',
+            port: 6379,
+          },
+        }),
+      }),
+    }),
     AuthModule,
     UsersModule,
+    JwtModule,
   ],
   controllers: [AppController],
-  providers: [AppService, AuthService],
+  providers: [
+    AppService,
+    AuthService,
+    CacheService,
+    { provide: APP_GUARD, useClass: RateLimitGuard },
+  ],
+  exports: [],
 })
 export class AppModule {}

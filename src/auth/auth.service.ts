@@ -1,16 +1,14 @@
 import {
   ConflictException,
-  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { JwtService } from '@nestjs/jwt';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { CreateUserDto } from 'src/users/dto/create-user-dto';
 import { comparePassword, hashPassword } from 'src/helpers/utility';
+import { CacheService } from 'src/helpers/cache-service';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +16,7 @@ export class AuthService {
     private readonly userService: UsersService,
     private readonly jwtService: JwtService,
     private configService: ConfigService,
-    @Inject(CACHE_MANAGER) private cache: Cache,
+    private readonly cacheService: CacheService,
   ) {}
 
   async register(createUserDto: CreateUserDto) {
@@ -26,31 +24,46 @@ export class AuthService {
 
     const user = await this.userService.findOne(username);
 
+    console.log('getting user');
+
     if (user) {
       return new ConflictException('Username already exists');
     }
 
     const hash = await hashPassword(password);
+    console.log('Hashing password');
 
     const checkRole = await this.userService.findRole(role);
+
+    console.log('checking role');
 
     const newUserObj = {
       username,
       password: hash,
-      roles: checkRole.id,
+      roles: '',
     };
 
-    if (!checkRole) {
-      const newRole = await this.userService.createRole(role);
-      newUserObj.roles = newRole.id;
+    if (checkRole) {
+      console.log('role exists');
+      newUserObj.roles = checkRole.id;
     }
+
+    console.log('creating role');
+    const newRole = await this.userService.createRole(role);
+    newUserObj.roles = newRole.id;
+
+    console.log('creating user');
 
     await this.userService.create(newUserObj);
   }
 
   async login(username: string, password: string) {
+    console.log('In the service');
+
+    console.log('validating user');
     const user = await this.validateUser(username, password);
 
+    console.log('getting user');
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -61,13 +74,16 @@ export class AuthService {
       roles: user.roles,
     };
 
-    const token = this.jwtService.sign(payload);
+    console.log(payload);
 
-    await this.cache.set(
-      `session${token}`,
-      { userId: user.id },
-      parseInt(this.configService.get<string>('jwt.expiresIn'), 10),
-    );
+    console.log('creating token');
+    const token = await this.jwtService.signAsync(payload);
+
+    console.log('Caching details');
+    await this.cacheService.setSession(user.id, {
+      userId: user.id,
+      accessToken: token,
+    });
     return token;
   }
 
@@ -83,8 +99,8 @@ export class AuthService {
       return null;
     }
 
-    const { password, ...result } = user;
+    user.password = undefined;
 
-    return result;
+    return user;
   }
 }
